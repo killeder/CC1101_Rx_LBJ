@@ -1015,14 +1015,15 @@ int8_t CC1101_Setup(float freq, float br, float freqDev, float rxBw,
 	state = CC1101_SetPreambleLength(preambleLength);
 	RADIO_ASSERT(state);
 	//7.设置同步字及同步字过滤功能（不允许位错误，启用载波检测）
-	state = CC1101_SetSyncWord(0x15,0xD8,0,true);
+	//同步字设为标准POCSAG同步字0x7CD215D8低16位的反码
+	//因为CC1101的FSK频偏方向和标准POCSAG正好相反
+	state = CC1101_SetSyncWord(0xEA,0x27,0,true);
 	RADIO_ASSERT(state);
 	//8.地址过滤功能：取消
 	state = CC1101_DisableAddressFiltering();
 	RADIO_ASSERT(state);
-	//9.设置包长模式及包长度(重点!) ：固定长度，64字节
-	state = CC1101_SetPacketLengthMode(CC1101_LENGTH_CONFIG_FIXED,
-										CC1101_FIFO_SIZE);
+	//9.设置包长模式及包长度(重点!) ：固定长度16字节，为4个码字长度
+	state = CC1101_SetPacketLengthMode(CC1101_LENGTH_CONFIG_FIXED,16);
 	RADIO_ASSERT(state);
 	//10.设置数据调制制式：2-FSK
 	state = CC1101_SetDataShaping(0);

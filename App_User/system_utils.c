@@ -8,7 +8,6 @@
 #include "CC1101_Rx_LBJ.h"
 
 float Rf_Freq = 821.2375f;		//接收频率821.2375MHz
-bool Rx_Invert_Flag = false;	//是否反向接收（同步码取反，接收到的原始数据按位反向后再解析）
 volatile bool bDataArrivalFlag = false;	//标识数据到来标志
 /*-----------------------------------------------------------------------
 *@brief		解析串口命令行
@@ -26,8 +25,7 @@ void ParseSerialCmdLine(char *Rxbuff)
 			MSG("$ (View this help tips again)\r\n"
 				"$$ (List current settings)\r\n"
 				"$V (View version info)\r\n"
-				"$F=xxx.xxxx (Setting frenquency to xxx.xxxx MHz)\r\n"
-				"$INV=x (Toggle invert receive,1 or 0)\r\n");
+				"$F=xxx.xxxx (Setting frenquency to xxx.xxxx MHz)\r\n");
 		}
 		else if(Rxbuff[1] == '$')//$$打印设置项目
 		{
@@ -49,22 +47,6 @@ void ParseSerialCmdLine(char *Rxbuff)
 				MSG("RF freq was set to %f MHz.\r\n",Rf_Freq);
 				CC1101_Initialize();	//重新初始化设置CC1101
 				CC1101_StartReceive(Rx_Callback);	//重新开始接收
-			}
-		}
-		else if(!strncmp(&Rxbuff[1],"INV",3))//$INV=x切换接收位反向开/关
-		{
-			pos = strchr(Rxbuff,'=') + 1;	//确定等号后的第一个字符的位置
-			uint8_t t;
-			if((sscanf(pos,"%hhu",&t) != 1)||(t >= 2))	//如果输入有误
-			{
-				MSG("Wrong Rx invert toggle formate.\r\n");
-			}
-			else
-			{
-				Rx_Invert_Flag = (t==1)?true:false;
-				MSG("Invert receive toggled:%s.\r\n",Rx_Invert_Flag?"On":"Off");
-				CC1101_Initialize();	//重新初始化设置CC1101
-				CC1101_StartReceive(Rx_Callback);	//重新开始接收	
 			}
 		}
 		else
@@ -89,8 +71,6 @@ void CC1101_Initialize(void)
 	//固定包长度64字节，不允许同步字有位错误，启用载波检测，关闭CRC过滤
 	//同步字0x15D8（标准POCSAG的低16位）
 	cc1101_state = CC1101_Setup(Rf_Freq,1.2f,4.5f,58.0f,0,16);
-	if(Rx_Invert_Flag)	//如果开启了反向接收，同步码取原来的反码
-		cc1101_state = CC1101_SetSyncWord(0xEA,0x27,0,true);
 	MSG("CC1101 initialize ");
 	if(cc1101_state == RADIO_ERR_NONE)	//若找到器件，设置成功
 	{
@@ -232,7 +212,6 @@ void ShowSettings(void)
 {
 	MSG("Settings:\r\n");
 	MSG("Rf frequency:%.4fMHz\r\n",Rf_Freq);
-	MSG("Invert receive:%s.\r\n",Rx_Invert_Flag?"On":"Off");
 }
 /*-----------------------------------------------------------------------
 *@brief		CC1101数据包接收完成时的回调函数
@@ -277,8 +256,8 @@ void RxDataFeedProc(void)
 				MSG("\r\n");	//每行16个
 		}
 		//解析LBJ信息（地址已过滤）
-		int8_t state = POCSAG_ParseCodeWordsLBJ(&PocsagMsg,batch_buff,actual_len,
-									 			  Rx_Invert_Flag);							     		 
+		int8_t state = POCSAG_ParseCodeWordsLBJ(&PocsagMsg,batch_buff,
+												 actual_len,true);							     		 
 		if(state == POCSAG_ERR_NONE)
 		{										
 			MSG("Address:%u,Function:%hhd.\r\n",PocsagMsg.Address,PocsagMsg.FuncCode);
