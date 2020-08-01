@@ -68,8 +68,8 @@ void CC1101_Initialize(void)
 
 	MSG("CC1101 Initializing...\r\n");
 	//1200bps 2FSK频偏4.5khz 接收机带宽58.0kHz 前导码16字节
-	//固定包长度64字节，不允许同步字有位错误，启用载波检测，关闭CRC过滤
-	//同步字0x15D8（标准POCSAG的低16位）
+	//固定包长度16字节，不允许同步字有位错误，启用载波检测，关闭CRC过滤
+	//同步字0xEA27（标准POCSAG的低16位的反码）
 	cc1101_state = CC1101_Setup(Rf_Freq,1.2f,4.5f,58.0f,0,16);
 	MSG("CC1101 initialize ");
 	if(cc1101_state == RADIO_ERR_NONE)	//若找到器件，设置成功

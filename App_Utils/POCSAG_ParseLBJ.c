@@ -38,7 +38,7 @@ static uint8_t FlipBCDbitOrder(uint8_t bcd)
 -----------------------------------------------------------------------*/
 static char BCD2Char(uint8_t bcd)
 {
-	char ch;
+	char ch = 0;
 	const char punc[6] = {'*','U','\x20','-','(',')'};//与0x0A-0x0F对应
 
 	if(bcd <= 9)

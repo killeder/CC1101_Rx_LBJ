@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 *@file     HW_RADIO_CC1101.c
 *@brief    德州仪器CC1101无线芯片驱动程序
 *@author   谢英男(xieyingnan1994@163.com）
@@ -407,7 +407,7 @@ int8_t CC1101_GoIdle(void)
 -----------------------------------------------------------------------*/
 int8_t CC1101_SetPacketLengthMode(uint8_t mode, uint8_t len)
 {
-	uint8_t len_limit;
+	uint8_t len_limit = 0;
 	int8_t state;
 	
 	if(mode == CC1101_LENGTH_CONFIG_FIXED)
