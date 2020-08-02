@@ -1,19 +1,18 @@
-/*-----------------------------------------------------------------------
+ï»¿/*-----------------------------------------------------------------------
 *@file     system_utils.c
-*@brief    ÏµÍ³²ãÊµÓÃ¹¦ÄÜ
-*@author   Ğ»Ó¢ÄĞ(xieyingnan1994@163.com£©
+*@brief    ç³»ç»Ÿå±‚å®ç”¨åŠŸèƒ½
+*@author   è°¢è‹±ç”·(xieyingnan1994@163.comï¼‰
 *@version  1.0
 *@date     2020/7/27
 -----------------------------------------------------------------------*/
 #include "CC1101_Rx_LBJ.h"
 
-float Rf_Freq = 821.2375f;		//½ÓÊÕÆµÂÊ821.2375MHz
-bool Rx_Invert_Flag = false;	//ÊÇ·ñ·´Ïò½ÓÊÕ£¨Í¬²½ÂëÈ¡·´£¬½ÓÊÕµ½µÄÔ­Ê¼Êı¾İ°´Î»·´ÏòºóÔÙ½âÎö£©
-volatile bool bDataArrivalFlag = false;	//±êÊ¶Êı¾İµ½À´±êÖ¾
+float Rf_Freq = 821.2375f;		//æ¥æ”¶é¢‘ç‡821.2375MHz
+volatile bool bDataArrivalFlag = false;	//æ ‡è¯†æ•°æ®åˆ°æ¥æ ‡å¿—
 /*-----------------------------------------------------------------------
-*@brief		½âÎö´®¿ÚÃüÁîĞĞ
-*@param		Ö¸Ïò´®ĞĞ¿ÚÊı¾İ»º³åÇø
-*@retval	ÎŞ
+*@brief		è§£æä¸²å£å‘½ä»¤è¡Œ
+*@param		æŒ‡å‘ä¸²è¡Œå£æ•°æ®ç¼“å†²åŒº
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void ParseSerialCmdLine(char *Rxbuff)
 {
@@ -21,88 +20,69 @@ void ParseSerialCmdLine(char *Rxbuff)
 
 	if(Rxbuff[0] == '$')
 	{
-		if(Rxbuff[1] == '\0')	//$ÏÔÊ¾°ïÖúĞÅÏ¢
+		if(Rxbuff[1] == '\0')	//$æ˜¾ç¤ºå¸®åŠ©ä¿¡æ¯
 		{
 			MSG("$ (View this help tips again)\r\n"
 				"$$ (List current settings)\r\n"
 				"$V (View version info)\r\n"
-				"$F=xxx.xxxx (Setting frenquency to xxx.xxxx MHz)\r\n"
-				"$INV=x (Toggle invert receive,1 or 0)\r\n");
+				"$F=xxx.xxxx (Setting frenquency to xxx.xxxx MHz)\r\n");
 		}
-		else if(Rxbuff[1] == '$')//$$´òÓ¡ÉèÖÃÏîÄ¿
+		else if(Rxbuff[1] == '$')//$$æ‰“å°è®¾ç½®é¡¹ç›®
 		{
-			ShowSettings();			//´®¿Ú´òÓ¡ÉèÖÃÏîÄ¿
+			ShowSettings();			//ä¸²å£æ‰“å°è®¾ç½®é¡¹ç›®
 		}
-		else if(Rxbuff[1] == 'V')//$VÏÔÊ¾°æ±¾ĞÅÏ¢
+		else if(Rxbuff[1] == 'V')//$Væ˜¾ç¤ºç‰ˆæœ¬ä¿¡æ¯
 		{
-			ShowBuildInfo();		//´®¿Ú´òÓ¡°æ±¾ĞÅÏ¢	
+			ShowBuildInfo();		//ä¸²å£æ‰“å°ç‰ˆæœ¬ä¿¡æ¯	
 		}		
-		else if(Rxbuff[1] == 'F')//$F=xxx.xxxxÉèÖÃ½ÓÊÕÆµÂÊ
+		else if(Rxbuff[1] == 'F')//$F=xxx.xxxxè®¾ç½®æ¥æ”¶é¢‘ç‡
 		{
-			pos = strchr(Rxbuff,'=') + 1;	//È·¶¨µÈºÅºóµÄµÚÒ»¸ö×Ö·ûµÄÎ»ÖÃ
-			if(sscanf(pos,"%f",&Rf_Freq)!=1)	//Èç¹ûÊäÈëÓĞÎó
+			pos = strchr(Rxbuff,'=') + 1;	//ç¡®å®šç­‰å·åçš„ç¬¬ä¸€ä¸ªå­—ç¬¦çš„ä½ç½®
+			if(sscanf(pos,"%f",&Rf_Freq)!=1)	//å¦‚æœè¾“å…¥æœ‰è¯¯
 			{	
 				MSG("Wrong RF frenquency formate.\r\n");
 			}
 			else
 			{
 				MSG("RF freq was set to %f MHz.\r\n",Rf_Freq);
-				CC1101_Initialize();	//ÖØĞÂ³õÊ¼»¯ÉèÖÃCC1101
-				CC1101_StartReceive(Rx_Callback);	//ÖØĞÂ¿ªÊ¼½ÓÊÕ
-			}
-		}
-		else if(!strncmp(&Rxbuff[1],"INV",3))//$INV=xÇĞ»»½ÓÊÕÎ»·´Ïò¿ª/¹Ø
-		{
-			pos = strchr(Rxbuff,'=') + 1;	//È·¶¨µÈºÅºóµÄµÚÒ»¸ö×Ö·ûµÄÎ»ÖÃ
-			uint8_t t;
-			if((sscanf(pos,"%hhu",&t) != 1)||(t >= 2))	//Èç¹ûÊäÈëÓĞÎó
-			{
-				MSG("Wrong Rx invert toggle formate.\r\n");
-			}
-			else
-			{
-				Rx_Invert_Flag = (t==1)?true:false;
-				MSG("Invert receive toggled:%s.\r\n",Rx_Invert_Flag?"On":"Off");
-				CC1101_Initialize();	//ÖØĞÂ³õÊ¼»¯ÉèÖÃCC1101
-				CC1101_StartReceive(Rx_Callback);	//ÖØĞÂ¿ªÊ¼½ÓÊÕ	
+				CC1101_Initialize();	//é‡æ–°åˆå§‹åŒ–è®¾ç½®CC1101
+				CC1101_StartReceive(Rx_Callback);	//é‡æ–°å¼€å§‹æ¥æ”¶
 			}
 		}
 		else
 			MSG("Unsupported command type.\r\n");
-		BeeperMode = BEEP_ONCE;	//´¦ÀíÍêÃüÁîºóÏìÒ»Éù
+		BeeperMode = BEEP_ONCE;	//å¤„ç†å®Œå‘½ä»¤åå“ä¸€å£°
 	}
 	else
 		MSG("Wrong Command Format! Type '$' for help.\r\n");
 }
 /*-----------------------------------------------------------------------
-*@brief		¼ì²âCC1101²¢¸ø³ö±¨¸æ
-*@param		ÎŞ
-*@retval	ÎŞ
+*@brief		æ£€æµ‹CC1101å¹¶ç»™å‡ºæŠ¥å‘Š
+*@param		æ— 
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void CC1101_Initialize(void)
 {
-	int8_t cc1101_state;	//ÉèÖÃCC1101Ê±·µ»ØµÄ×´Ì¬Âë
-	uint8_t delay_count = 0;	//ÑÓÊ±¼ÆÊı
+	int8_t cc1101_state;	//è®¾ç½®CC1101æ—¶è¿”å›çš„çŠ¶æ€ç 
+	uint8_t delay_count = 0;	//å»¶æ—¶è®¡æ•°
 
 	MSG("CC1101 Initializing...\r\n");
-	//1200bps 2FSKÆµÆ«4.5khz ½ÓÊÕ»ú´ø¿í58.0kHz Ç°µ¼Âë16×Ö½Ú
-	//¹Ì¶¨°ü³¤¶È64×Ö½Ú£¬²»ÔÊĞíÍ¬²½×ÖÓĞÎ»´íÎó£¬ÆôÓÃÔØ²¨¼ì²â£¬¹Ø±ÕCRC¹ıÂË
-	//Í¬²½×Ö0x15D8£¨±ê×¼POCSAGµÄµÍ16Î»£©
+	//1200bps 2FSKé¢‘å4.5khz æ¥æ”¶æœºå¸¦å®½58.0kHz å‰å¯¼ç 16å­—èŠ‚
+	//å›ºå®šåŒ…é•¿åº¦16å­—èŠ‚ï¼Œä¸å…è®¸åŒæ­¥å­—æœ‰ä½é”™è¯¯ï¼Œå¯ç”¨è½½æ³¢æ£€æµ‹ï¼Œå…³é—­CRCè¿‡æ»¤
+	//åŒæ­¥å­—0xEA27ï¼ˆæ ‡å‡†POCSAGçš„ä½16ä½çš„åç ï¼‰
 	cc1101_state = CC1101_Setup(Rf_Freq,1.2f,4.5f,58.0f,0,16);
-	if(Rx_Invert_Flag)	//Èç¹û¿ªÆôÁË·´Ïò½ÓÊÕ£¬Í¬²½ÂëÈ¡Ô­À´µÄ·´Âë
-		cc1101_state = CC1101_SetSyncWord(0xEA,0x27,0,true);
 	MSG("CC1101 initialize ");
-	if(cc1101_state == RADIO_ERR_NONE)	//ÈôÕÒµ½Æ÷¼ş£¬ÉèÖÃ³É¹¦
+	if(cc1101_state == RADIO_ERR_NONE)	//è‹¥æ‰¾åˆ°å™¨ä»¶ï¼Œè®¾ç½®æˆåŠŸ
 	{
 		MSG("OK!\r\n");
-		BeeperMode = BEEP_ONCE;//ÏìÒ»Éù
-		StatusBlinkMode = BLINK_SLOW;//ÂıÉÁÖ¸Ê¾½øÈë½ÓÊÕ´ıÃü×´Ì¬
-		ShowFixedPattern();	//OLEDÉÏÏÔÊ¾¹Ì¶¨×Ö·û(¡°³µ´Î¡±¡¢¡°ËÙ¶È¡±µÈºº×Ö)
+		BeeperMode = BEEP_ONCE;//å“ä¸€å£°
+		StatusBlinkMode = BLINK_SLOW;//æ…¢é—ªæŒ‡ç¤ºè¿›å…¥æ¥æ”¶å¾…å‘½çŠ¶æ€
+		ShowFixedPattern();	//OLEDä¸Šæ˜¾ç¤ºå›ºå®šå­—ç¬¦(â€œè½¦æ¬¡â€ã€â€œé€Ÿåº¦â€ç­‰æ±‰å­—)
 	}
 	else
 	{
 		MSG("failed! StateCode:%d\r\n",cc1101_state);
-		StatusBlinkMode = BLINK_FAST;//¿ìÉÁÖ¸Ê¾½øÈëÒì³£×´Ì¬
+		StatusBlinkMode = BLINK_FAST;//å¿«é—ªæŒ‡ç¤ºè¿›å…¥å¼‚å¸¸çŠ¶æ€
 		MSG("System halt!\r\n");
 		OLED_ShowString(0*8,0,"   Attention!   ",16);
 		OLED_ShowString(0*8,2," CC1101 Invalid!",16);
@@ -114,101 +94,101 @@ void CC1101_Initialize(void)
 			if(++delay_count == 100)
 			{
 				delay_count = 0;
-				BeeperMode = DBL_BEEP;	//Ã¿1ÃëÏì2´Î
+				BeeperMode = DBL_BEEP;	//æ¯1ç§’å“2æ¬¡
 			}
 		}
 	}
 }
 /*-----------------------------------------------------------------------
-*@brief		ÔÚOLEDÆÁÄ»ÉÏÏÔÊ¾LBJ½âÂëĞÅÏ¢
-*@param		LBJ_Msg - Ö¸ÏòÒÑ½âÂëPOCSAGÏûÏ¢µÄÖ¸Õë
-*           rssi,lqi - ´ÓCCC1101¶Áµ½µÄ±¾´Î½âÂëÊ±RSSIºÍLQIË®Æ½
-*@retval	ÎŞ
+*@brief		åœ¨OLEDå±å¹•ä¸Šæ˜¾ç¤ºLBJè§£ç ä¿¡æ¯
+*@param		LBJ_Msg - æŒ‡å‘å·²è§£ç POCSAGæ¶ˆæ¯çš„æŒ‡é’ˆ
+*           rssi,lqi - ä»CCC1101è¯»åˆ°çš„æœ¬æ¬¡è§£ç æ—¶RSSIå’ŒLQIæ°´å¹³
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void ShowMessageLBJ(POCSAG_RESULT* POCSAG_Msg,float rssi,uint8_t lqi)
 {
-	char LBJ_Info[3][7] = {{0},{0},{0}};//´æ´¢³µ´Î¡¢ËÙ¶È¡¢¹«Àï±êĞÅÏ¢£¬Ã¿ÌõÔ¤Áô6×Ö·û
-	char Link_Info[2][6] = {{0},{0}};	//RSSI/LQIÁ¬½ÓÖÊÁ¿ĞÅÏ¢
+	char LBJ_Info[3][7] = {{0},{0},{0}};//å­˜å‚¨è½¦æ¬¡ã€é€Ÿåº¦ã€å…¬é‡Œæ ‡ä¿¡æ¯ï¼Œæ¯æ¡é¢„ç•™6å­—ç¬¦
+	char Link_Info[2][6] = {{0},{0}};	//RSSI/LQIè¿æ¥è´¨é‡ä¿¡æ¯
 
 	for(uint8_t i = 0;i < 3;i++)
 	{
-		strncpy(LBJ_Info[i],POCSAG_Msg->txtMsg+i*5,5);//txtMsgÃ¿5¸ö×Ö·ûÒ»×é·Ö±ğ´æ´¢
+		strncpy(LBJ_Info[i],POCSAG_Msg->txtMsg+i*5,5);//txtMsgæ¯5ä¸ªå­—ç¬¦ä¸€ç»„åˆ†åˆ«å­˜å‚¨
 	}
-	//LBJ_Info[0]³µ´Î£º12345£¬LBJ_Info[1]ËÙ¶È£ºC100C£¬LBJ_Info[2]¹«Àï±ê£º23456
-	//"C"´ú±í¿Õ¸ñ£¬³µ´ÎÊıºÍ¹«Àï±ê²»¹»5Î»Ê±ÔÚ¸ßÎ»²¹C,Î»ÎŞĞ§Ê±ÏÔÊ¾"-"
-	LBJ_Info[2][5] = LBJ_Info[2][4];	//½«¹«Àï±ê×îºóÎ»ºÍµ¹Êı2Î»¼ä¼ÓÈëĞ¡Êıµã"."
+	//LBJ_Info[0]è½¦æ¬¡ï¼š12345ï¼ŒLBJ_Info[1]é€Ÿåº¦ï¼šC100Cï¼ŒLBJ_Info[2]å…¬é‡Œæ ‡ï¼š23456
+	//"C"ä»£è¡¨ç©ºæ ¼ï¼Œè½¦æ¬¡æ•°å’Œå…¬é‡Œæ ‡ä¸å¤Ÿ5ä½æ—¶åœ¨é«˜ä½è¡¥C,ä½æ— æ•ˆæ—¶æ˜¾ç¤º"-"
+	LBJ_Info[2][5] = LBJ_Info[2][4];	//å°†å…¬é‡Œæ ‡æœ€åä½å’Œå€’æ•°2ä½é—´åŠ å…¥å°æ•°ç‚¹"."
 	LBJ_Info[2][4] = '.';
-	sprintf(Link_Info[0],"%.1f",rssi);	//Á¬½ÓÖÊÁ¿Ö¸Ê¾
+	sprintf(Link_Info[0],"%.1f",rssi);	//è¿æ¥è´¨é‡æŒ‡ç¤º
 	sprintf(Link_Info[1],"%hhu",lqi);
 
-	OLED_ShowString(6*8,0,LBJ_Info[0],16);	//1.1ÏÔÊ¾³µ´Î
-	if(POCSAG_Msg->FuncCode == FUNC_SHANGXING)	//1.2ÏÔÊ¾ÉÏÏÂĞĞ
-		OLED_ShowPattern16x16(6*16,0,7); //ÉÏ
+	OLED_ShowString(6*8,0,LBJ_Info[0],16);	//1.1æ˜¾ç¤ºè½¦æ¬¡
+	if(POCSAG_Msg->FuncCode == FUNC_SHANGXING)	//1.2æ˜¾ç¤ºä¸Šä¸‹è¡Œ
+		OLED_ShowPattern16x16(6*16,0,7); //ä¸Š
 	else if(POCSAG_Msg->FuncCode == FUNC_XIAXING)
-		OLED_ShowPattern16x16(6*16,0,8); //ÏÂ
-	OLED_ShowOneChar(6*8,2,LBJ_Info[1][1],16);	//2.1ÏÔÊ¾ËÙ¶È-°ÙÎ»
-	OLED_ShowOneChar(7*8,2,LBJ_Info[1][2],16); //2.2ÏÔÊ¾ËÙ¶È-Ê®Î»
-	OLED_ShowOneChar(8*8,2,LBJ_Info[1][3],16); //2.3ÏÔÊ¾ËÙ¶È-¸öÎ»
-	OLED_ShowString(7*8,4,LBJ_Info[2],16);	//3.ÏÔÊ¾¹«Àï±ê
-	OLED_ShowString(5*8,6,Link_Info[0],16);	//4.1ÏÔÊ¾RSSI
-	OLED_ShowString(14*8,6,Link_Info[1],16);//4.2ÏÔÊ¾LQI
+		OLED_ShowPattern16x16(6*16,0,8); //ä¸‹
+	OLED_ShowOneChar(6*8,2,LBJ_Info[1][1],16);	//2.1æ˜¾ç¤ºé€Ÿåº¦-ç™¾ä½
+	OLED_ShowOneChar(7*8,2,LBJ_Info[1][2],16); //2.2æ˜¾ç¤ºé€Ÿåº¦-åä½
+	OLED_ShowOneChar(8*8,2,LBJ_Info[1][3],16); //2.3æ˜¾ç¤ºé€Ÿåº¦-ä¸ªä½
+	OLED_ShowString(7*8,4,LBJ_Info[2],16);	//3.æ˜¾ç¤ºå…¬é‡Œæ ‡
+	OLED_ShowString(5*8,6,Link_Info[0],16);	//4.1æ˜¾ç¤ºRSSI
+	OLED_ShowString(14*8,6,Link_Info[1],16);//4.2æ˜¾ç¤ºLQI
 
 }
 /*-----------------------------------------------------------------------
-*@brief		OLEDÉÏÏÔÊ¾¹Ì¶¨×Ö·û(¡°³µ´Î¡±¡¢¡°ËÙ¶È¡±µÈºº×Ö)
-**@detail   ³µ´Î: ----- ÉÏĞĞ	ºº×Ö´óĞ¡16*16 Ó¢ÎÄ16x8
-*           ËÙ¶È: --- km/h   ºº×Ö´óĞ¡16*16 Ó¢ÎÄ16x8
-*           ¹«Àï±ê: ---.- km ºº×Ö´óĞ¡16*16 Ó¢ÎÄ16x8
-*           RSSI:---.-LQI:-- Ó¢ÎÄ16x8
-*@param		ÎŞ
-*@retval	ÎŞ
+*@brief		OLEDä¸Šæ˜¾ç¤ºå›ºå®šå­—ç¬¦(â€œè½¦æ¬¡â€ã€â€œé€Ÿåº¦â€ç­‰æ±‰å­—)
+**@detail   è½¦æ¬¡: ----- ä¸Šè¡Œ	æ±‰å­—å¤§å°16*16 è‹±æ–‡16x8
+*           é€Ÿåº¦: --- km/h   æ±‰å­—å¤§å°16*16 è‹±æ–‡16x8
+*           å…¬é‡Œæ ‡: ---.- km æ±‰å­—å¤§å°16*16 è‹±æ–‡16x8
+*           RSSI:---.-LQI:-- è‹±æ–‡16x8
+*@param		æ— 
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void ShowFixedPattern(void)
 {
-	//µÚÒ»ĞĞ£¬ĞĞºÅ0-1
-	OLED_ShowPattern16x16(0*16,0,0); //³µ
-	OLED_ShowPattern16x16(1*16,0,1); //´Î
-	OLED_ShowPattern16x16(6*16,0,7); //ÉÏ
-	OLED_ShowPattern16x16(7*16,0,9); //ĞĞ
+	//ç¬¬ä¸€è¡Œï¼Œè¡Œå·0-1
+	OLED_ShowPattern16x16(0*16,0,0); //è½¦
+	OLED_ShowPattern16x16(1*16,0,1); //æ¬¡
+	OLED_ShowPattern16x16(6*16,0,7); //ä¸Š
+	OLED_ShowPattern16x16(7*16,0,9); //è¡Œ
 	OLED_ShowString(4*8,0,": ----- ",16);
-	//µÚ¶şĞĞ,ĞĞºÅ2-3
-	OLED_ShowPattern16x16(0*16,2,2); //ËÙ
-	OLED_ShowPattern16x16(1*16,2,3); //¶È
+	//ç¬¬äºŒè¡Œ,è¡Œå·2-3
+	OLED_ShowPattern16x16(0*16,2,2); //é€Ÿ
+	OLED_ShowPattern16x16(1*16,2,3); //åº¦
 	OLED_ShowString(4*8,2,": --- km/h",16);
-	//µÚÈıĞĞ£¬ĞĞºÅ4-5
-	OLED_ShowPattern16x16(0*16,4,4); //¹«
-	OLED_ShowPattern16x16(1*16,4,5); //Àï
-	OLED_ShowPattern16x16(2*16,4,6); //±ê
+	//ç¬¬ä¸‰è¡Œï¼Œè¡Œå·4-5
+	OLED_ShowPattern16x16(0*16,4,4); //å…¬
+	OLED_ShowPattern16x16(1*16,4,5); //é‡Œ
+	OLED_ShowPattern16x16(2*16,4,6); //æ ‡
 	OLED_ShowString(6*8,4,": ---.- km",16);
-	//µÚËÄĞĞ£¬ĞĞºÅ6-7
+	//ç¬¬å››è¡Œï¼Œè¡Œå·6-7
 	OLED_ShowString(0*8,6,"RSSI:---.- LQI--",16);	
 }
 /*-----------------------------------------------------------------------
-*@brief		ÏÔÊ¾°æ±¾ĞÅÏ¢Í¨¹ı´®¿Ú´òÓ¡
-*@param		ÎŞ
-*@retval	ÎŞ
+*@brief		æ˜¾ç¤ºç‰ˆæœ¬ä¿¡æ¯é€šè¿‡ä¸²å£æ‰“å°
+*@param		æ— 
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void ShowBuildInfo(void)
 {
 	MSG("%s %s (Build %s %s) [Type '$' for help.]\r\n",APP_NAME_STR,
-		      VERTION_STR,BUILD_DATE_STR,BUILD_TIME_STR);//´®¿Ú´òÓ¡°æ±¾ĞÅÏ¢
+		      VERTION_STR,BUILD_DATE_STR,BUILD_TIME_STR);//ä¸²å£æ‰“å°ç‰ˆæœ¬ä¿¡æ¯
 	MSG("Xie Yingnan Works.<xieyingnan1994@163.com>\r\n");
 }
 
 /*-----------------------------------------------------------------------
-*@brief		OLEDÏÔÊ¾¿ª»ú»­ÃæºÍ°æ±¾ĞÅÏ¢
-*@param		ÎŞ
-*@retval	ÎŞ
+*@brief		OLEDæ˜¾ç¤ºå¼€æœºç”»é¢å’Œç‰ˆæœ¬ä¿¡æ¯
+*@param		æ— 
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void ShowSplashScreen(void)
 {
-	char buf[17] = {0};	//Ã¿ĞĞ×î¶à16×Ö·û
+	char buf[17] = {0};	//æ¯è¡Œæœ€å¤š16å­—ç¬¦
 	OLED_ShowBMP128x64(nBitmapDot);
-	//nBitmapDotÊÇÔÚHW_OLED_Font.cÖĞ¶¨ÒåµÄ¿ª»ú»­ÃæÎ»Í¼
+	//nBitmapDotæ˜¯åœ¨HW_OLED_Font.cä¸­å®šä¹‰çš„å¼€æœºç”»é¢ä½å›¾
 	Delay_ms(1500);
-	OLED_Clear();//ÇåÆÁ
+	OLED_Clear();//æ¸…å±
 	sprintf(buf,"<%s>",APP_NAME_STR);
-	OLED_ShowString(0,0,buf,12);//8x6×ÖÌå£¬ÁĞ¿í6Õ¼ÓÃ8£¬ĞĞ¸ß8
+	OLED_ShowString(0,0,buf,12);//8x6å­—ä½“ï¼Œåˆ—å®½6å ç”¨8ï¼Œè¡Œé«˜8
 	sprintf(buf,"<Version:%s>",VERTION_STR);
 	OLED_ShowString(0,1,buf,12);
 	OLED_ShowString(0,2,"  <Build Date>  ",12);
@@ -221,81 +201,83 @@ void ShowSplashScreen(void)
 	OLED_ShowString(0,7,">CallSign:BH2RPH",12);
 	Delay_ms(1500);
 	Delay_ms(1200);
-	OLED_Clear();//ÇåÆÁ
+	OLED_Clear();//æ¸…å±
 }
 /*-----------------------------------------------------------------------
-*@brief		´®¿Ú´òÓ¡ÉèÖÃÏîÄ¿
-*@param		ÎŞ
-*@retval	ÎŞ
+*@brief		ä¸²å£æ‰“å°è®¾ç½®é¡¹ç›®
+*@param		æ— 
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void ShowSettings(void)
 {
 	MSG("Settings:\r\n");
 	MSG("Rf frequency:%.4fMHz\r\n",Rf_Freq);
-	MSG("Invert receive:%s.\r\n",Rx_Invert_Flag?"On":"Off");
 }
 /*-----------------------------------------------------------------------
-*@brief		CC1101Êı¾İ°ü½ÓÊÕÍê³ÉÊ±µÄ»Øµ÷º¯Êı
-*@param		°´ÕÕ³õÊ¼»¯Ê±µÄ¼Ä´æÆ÷ÉèÖÃ£¬½ÓÊÕÍê³ÉÊ±CC1101´¦ÓÚIDLEÌ¬£¬
-*        	Êı¾İ±£´æÔÚFIFO
-*@retval	ÎŞ
+*@brief		CC1101æ•°æ®åŒ…æ¥æ”¶å®Œæˆæ—¶çš„å›è°ƒå‡½æ•°
+*@param		æŒ‰ç…§åˆå§‹åŒ–æ—¶çš„å¯„å­˜å™¨è®¾ç½®ï¼Œæ¥æ”¶å®Œæˆæ—¶CC1101å¤„äºIDLEæ€ï¼Œ
+*        	æ•°æ®ä¿å­˜åœ¨FIFO
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void Rx_Callback(void)
 {
 	if(!bDataArrivalFlag)
-		bDataArrivalFlag = true;	//ÖÃÊı¾İµ½´ï±êÖ¾Î»
+		bDataArrivalFlag = true;	//ç½®æ•°æ®åˆ°è¾¾æ ‡å¿—ä½
 }
 /*-----------------------------------------------------------------------
-*@brief		¶ÁÈ¡ÒÑ½ÓÊÕµÄÊı¾İ²¢´¦ÀíºÍÏÔÊ¾
-*@param		°´ÕÕ³õÊ¼»¯Ê±µÄ¼Ä´æÆ÷ÉèÖÃ£¬½ÓÊÕÍê³ÉÊ±CC1101´¦ÓÚIDLEÌ¬£¬
-*        	Êı¾İ±£´æÔÚFIFOÖĞ¡£´¦Àíºó£¬ĞèÒªÔÙ´Î·¢ËÍRXÃüÁî£¬·½¿É½ÓÊÕ
-*@retval	ÎŞ
+*@brief		è¯»å–å·²æ¥æ”¶çš„æ•°æ®å¹¶å¤„ç†å’Œæ˜¾ç¤º
+*@param		æŒ‰ç…§åˆå§‹åŒ–æ—¶çš„å¯„å­˜å™¨è®¾ç½®ï¼Œæ¥æ”¶å®Œæˆæ—¶CC1101å¤„äºIDLEæ€ï¼Œ
+*        	æ•°æ®ä¿å­˜åœ¨FIFOä¸­ã€‚å¤„ç†åï¼Œéœ€è¦å†æ¬¡å‘é€RXå‘½ä»¤ï¼Œæ–¹å¯æ¥æ”¶
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void RxDataFeedProc(void)
 {
-	uint8_t* batch_buff = NULL;	//´æ·ÅÂë×ÖÔ­Ê¼Êı¾İµÄ»º³åÇø
+	uint8_t* batch_buff = NULL;	//å­˜æ”¾ç å­—åŸå§‹æ•°æ®çš„ç¼“å†²åŒº
 	uint32_t batch_len = CC1101_GetPacketLength(false);
-			//»ñÈ¡ÒÑÉèÖÃµÄ°ü³¤¶È,ÔÚ±¾ÀıÖĞÒÑÔÚ³õÊ¼»¯ÖĞÉèÖÃÎªFIFOµÄ´óĞ¡64×Ö½Ú
-	uint32_t actual_len;//Êµ¼Ê¶Áµ½µÄÔ­Ê¼Êı¾İ³¤¶È£¬¶¨³¤Ä£Ê½Ê±ºÍbatch_lenÏàÍ¬
-	POCSAG_RESULT PocsagMsg;//±£´æPOCSAG½âÂë½á¹ûµÄ½á¹¹Ìå
+			//è·å–å·²è®¾ç½®çš„åŒ…é•¿åº¦,åœ¨æœ¬ä¾‹ä¸­å·²åœ¨åˆå§‹åŒ–ä¸­è®¾ç½®ä¸º4ä¸ªç å­—çš„é•¿åº¦16å­—èŠ‚
+	uint32_t actual_len;//å®é™…è¯»åˆ°çš„åŸå§‹æ•°æ®é•¿åº¦ï¼Œå®šé•¿æ¨¡å¼æ—¶å’Œbatch_lenç›¸åŒ
+	POCSAG_RESULT PocsagMsg;//ä¿å­˜POCSAGè§£ç ç»“æœçš„ç»“æ„ä½“
 
 	if((batch_buff=(uint8_t*)malloc(batch_len*sizeof(uint8_t))) != NULL)
 	{
-		memset(batch_buff,0,batch_len);	//Çå¿Õbatch»º´æ
+		memset(batch_buff,0,batch_len);	//æ¸…ç©ºbatchç¼“å­˜
 
-		CC1101_ReadDataFIFO(batch_buff,&actual_len);//´ÓFIFO¶ÁÈëÔ­Ê¼Êı¾İ
-		float rssi = CC1101_GetRSSI();//ÓÉÓÚ½ÓÊÕÍê³Éºó´¦ÓÚIDLEÌ¬
-		uint8_t lqi = CC1101_GetLQI();//ÕâÀïµÄRSSIºÍLQI¶³½á²»±äÓë±¾´ÎÊı¾İ°üÏà¶ÔÓ¦
+		CC1101_ReadDataFIFO(batch_buff,&actual_len);//ä»FIFOè¯»å…¥åŸå§‹æ•°æ®
+		float rssi = CC1101_GetRSSI();//ç”±äºæ¥æ”¶å®Œæˆåå¤„äºIDLEæ€
+		uint8_t lqi = CC1101_GetLQI();//è¿™é‡Œçš„RSSIå’ŒLQIå†»ç»“ä¸å˜ä¸æœ¬æ¬¡æ•°æ®åŒ…ç›¸å¯¹åº”
 
 		MSG("!!Received %u bytes of raw data.\r\n",actual_len);
 		MSG("RSSI:%.1f LQI:%hhu\r\n",rssi,lqi);
 		MSG("Raw data:\r\n");
 		for(uint32_t i=0;i < actual_len;i++)
 		{
-			MSG("%02Xh ",batch_buff[i]);//´òÓ¡Ô­Ê¼Êı¾İ
+			MSG("%02Xh ",batch_buff[i]);//æ‰“å°åŸå§‹æ•°æ®
 			if((i+1)%16 == 0)
-				MSG("\r\n");	//Ã¿ĞĞ16¸ö
+				MSG("\r\n");	//æ¯è¡Œ16ä¸ª
 		}
-		//½âÎöLBJĞÅÏ¢£¨µØÖ·ÒÑ¹ıÂË£©
-		int8_t state = POCSAG_ParseCodeWordsLBJ(&PocsagMsg,batch_buff,actual_len,
-									 			  Rx_Invert_Flag);							     		 
+		//è§£æLBJä¿¡æ¯
+		int8_t state = POCSAG_ParseCodeWordsLBJ(&PocsagMsg,batch_buff,
+												 actual_len,true);							     		 
 		if(state == POCSAG_ERR_NONE)
 		{										
 			MSG("Address:%u,Function:%hhd.\r\n",PocsagMsg.Address,PocsagMsg.FuncCode);
-												//ÏÔÊ¾µØÖ·Âë£¬¹¦ÄÜÂë
-			MSG("LBJ Message:%s.\r\n",PocsagMsg.txtMsg);//ÏÔÊ¾ÎÄ±¾ÏûÏ¢
-			ShowMessageLBJ(&PocsagMsg,rssi,lqi);	//ÔÚOLEDÆÁÄ»ÉÏÏÔÊ¾LBJ½âÂëĞÅÏ¢
-			switch(PocsagMsg.FuncCode)	//·äÃùÆ÷¸ù¾İ¹¦ÄÜÂëÃùÏì¶ÔÓ¦´ÎÊı
+												//æ˜¾ç¤ºåœ°å€ç ï¼ŒåŠŸèƒ½ç 
+			MSG("LBJ Message:%s.\r\n",PocsagMsg.txtMsg);//æ˜¾ç¤ºæ–‡æœ¬æ¶ˆæ¯
+			if(PocsagMsg.Address == LBJ_MESSAGE_ADDR)
 			{
-				case FUNC_XIAXING:
-					BeeperMode = BEEP_ONCE;//ÏìÒ»´Î
-					InfoBlinkMode = BLINK_ONCE;//ÉÁË¸Ò»´Î
-					break;
-				case FUNC_SHANGXING:
-					InfoBlinkMode = DBL_BLINK;//ÉÁË¸Á½´Î
-					BeeperMode = DBL_BEEP;//ÏìÁ½´Î
-					break;
-				default: BeeperMode = DBL_BEEP; break;
+				ShowMessageLBJ(&PocsagMsg,rssi,lqi);	//åœ¨OLEDå±å¹•ä¸Šæ˜¾ç¤ºLBJè§£ç ä¿¡æ¯
+				switch(PocsagMsg.FuncCode)	//èœ‚é¸£å™¨æ ¹æ®åŠŸèƒ½ç é¸£å“å¯¹åº”æ¬¡æ•°
+				{
+					case FUNC_XIAXING:
+						BeeperMode = BEEP_ONCE;//å“ä¸€æ¬¡
+						InfoBlinkMode = BLINK_ONCE;//é—ªçƒä¸€æ¬¡
+						break;
+					case FUNC_SHANGXING:
+						InfoBlinkMode = DBL_BLINK;//é—ªçƒä¸¤æ¬¡
+						BeeperMode = DBL_BEEP;//å“ä¸¤æ¬¡
+						break;
+					default: BeeperMode = DBL_BEEP; break;
+				}
 			}
 		}
 		else
@@ -305,13 +287,13 @@ void RxDataFeedProc(void)
 		}
 		free(batch_buff);
 	}
-	CC1101_StartReceive(Rx_Callback);	//¼ÌĞø½ÓÊÕ
+	CC1101_StartReceive(Rx_Callback);	//ç»§ç»­æ¥æ”¶
 }
 /*-----------------------------------------------------------------------
-*@brief		¶¨Ê±Æ÷ÖĞ¶Ï·şÎñº¯ÊıÓÃÓÚÌá¹©Ê±»ù
-*@detail 	¶¨Ê±ÖÜÆÚÔÚTIM³õÊ¼»¯º¯ÊıÖĞÈ·¶¨£¬±¾³ÌĞòÎª10mS
-*@param		ÎŞ
-*@retval	ÎŞ
+*@brief		å®šæ—¶å™¨ä¸­æ–­æœåŠ¡å‡½æ•°ç”¨äºæä¾›æ—¶åŸº
+*@detail 	å®šæ—¶å‘¨æœŸåœ¨TIMåˆå§‹åŒ–å‡½æ•°ä¸­ç¡®å®šï¼Œæœ¬ç¨‹åºä¸º10mS
+*@param		æ— 
+*@retval	æ— 
 -----------------------------------------------------------------------*/
 void INT_TIMER_IRQHandler(void)
 {
@@ -321,9 +303,9 @@ void INT_TIMER_IRQHandler(void)
 
 	if(TIM_GetITStatus(INT_TIMER,TIM_IT_Update)!=RESET)
 	{
-		switch(BeeperMode)	//ÌáÊ¾·äÃùÆ÷µÄ¿ØÖÆ
+		switch(BeeperMode)	//æç¤ºèœ‚é¸£å™¨çš„æ§åˆ¶
 		{
-		case BEEP_ONCE:							//ÏìÒ»´Î
+		case BEEP_ONCE:							//å“ä¸€æ¬¡
 			BUZZER_ON();
 			if(++cnt_beep >= 10)
 			{ BUZZER_OFF(); BeeperMode = BEEP_OFF; }
@@ -331,31 +313,31 @@ void INT_TIMER_IRQHandler(void)
 		case DBL_BEEP: 
 			if(cnt_beeptimes < 2)
 			{
-				if(cnt_beep <= 8) {BUZZER_ON();}	//Ïì80ms
-				else {BUZZER_OFF();}				//Í£80ms
-				if(++cnt_beep >= 16)				//ÖÜÆÚ160ms
+				if(cnt_beep <= 8) {BUZZER_ON();}	//å“80ms
+				else {BUZZER_OFF();}				//åœ80ms
+				if(++cnt_beep >= 16)				//å‘¨æœŸ160ms
 				{cnt_beep = 0; cnt_beeptimes++;}
 			}
 			else
-				BeeperMode = BEEP_OFF;	//Ïì2´ÎºóÍ£
+				BeeperMode = BEEP_OFF;	//å“2æ¬¡ååœ
 			break;
 		default:
-			BUZZER_OFF();	//Ä¬ÈÏ¹Ø±Õ·äÃùÆ÷
-			cnt_beep = 0;	//Çå¿Õbeep¼ÆÊ±±äÁ¿
-			cnt_beeptimes = 0; //Çå¿Õbeep¼Ç´Î±äÁ¿
+			BUZZER_OFF();	//é»˜è®¤å…³é—­èœ‚é¸£å™¨
+			cnt_beep = 0;	//æ¸…ç©ºbeepè®¡æ—¶å˜é‡
+			cnt_beeptimes = 0; //æ¸…ç©ºbeepè®°æ¬¡å˜é‡
 			break;
 		}
 
-		switch(StatusBlinkMode)	//×´Ì¬LED
+		switch(StatusBlinkMode)	//çŠ¶æ€LED
 		{
 		case BLINK_FAST:
-			if(++cnt_blink >= 10)	//ÖÜÆÚ200ms,50%duty
+			if(++cnt_blink >= 10)	//å‘¨æœŸ200ms,50%duty
 			{ STATUS_LED_TOGGLE(); cnt_blink = 0; }
 			break;
 		case BLINK_SLOW:
-			if(cnt_blink <= 20) {STATUS_LED_ON();}	//ÁÁ200ms
-			else {STATUS_LED_OFF();}			//Ãğ800ms
-			if(++cnt_blink >= 100)				//ÖÜÆÚ1000ms
+			if(cnt_blink <= 20) {STATUS_LED_ON();}	//äº®200ms
+			else {STATUS_LED_OFF();}			//ç­800ms
+			if(++cnt_blink >= 100)				//å‘¨æœŸ1000ms
 				cnt_blink = 0;
 			break;
 		default:
@@ -377,13 +359,13 @@ void INT_TIMER_IRQHandler(void)
 		case DBL_BLINK:
 			if(cnt_infoblinktimes < 2)
 			{
-				if(cnt_infoblink <= 10) {INFO_LED_ON();}	//ÁÁ100ms
-				else {INFO_LED_OFF();}				//Ãğ100ms
-				if(++cnt_infoblink >= 20)				//ÖÜÆÚ200ms
+				if(cnt_infoblink <= 10) {INFO_LED_ON();}	//äº®100ms
+				else {INFO_LED_OFF();}				//ç­100ms
+				if(++cnt_infoblink >= 20)				//å‘¨æœŸ200ms
 				{cnt_infoblink = 0; cnt_infoblinktimes++;}
 			}
 			else
-				InfoBlinkMode = BLINK_OFF;	//Ïì2´ÎºóÍ£
+				InfoBlinkMode = BLINK_OFF;	//å“2æ¬¡ååœ
 			break;
 		default:
 			INFO_LED_OFF();

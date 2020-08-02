@@ -1,34 +1,61 @@
-��Ŀ���ƣ�CC1101_Rx_LBJ
-�޶��汾��V1.0
-�������ڣ�2020-7-27
-���ߣ�лӢ�� xieyingnan1994@163.com QQ:972982516
-������
-1.ʹ��CC1101��ƵоƬ��821.2375MHz���պͽ���POCSAG�����������г��ӽ�Ԥ����Ϣ��CC1101����������ֲ��ԭ����Arduino��RadioLib.
-  ����ʹ��STM32F103RCT6��ʹ�ô������ý���Ƶ�ʺ��Ƿ񽫽��յ���ԭʼ����λ������ٽ���POCSAG�������������
-2.CC1101���͵����ݷǱ�׼POCSAG��ʽ������POCSAG�ĵ�һ������(8��֡��16������)�Զ���ģʽ(64�ֽ�)���͡����⣬����CC1101��2FSK��ʽΪF+f����1��F-f����0��
-  ���׼��POCSAGҪ��ǡ���෴�����Ϊ�˼���CC1101���������ݺͱ�׼����̨���ݣ����ն�����ѡ������Ƿ����ݷ�����ٽ��մ�����
-  ����Ϊ���ݷ����ͬ����Ҳ��Ҫ����Ϊ�������ʶ��ͬ���롣
-3.CC1101ʹ�ö����Ȱ�ģʽ����������Ϊ64�ֽڣ����巢�ͳ������ݽṹΪ��
-  16�ֽ�ǰ����+2�ֽ�ͬ����0x15D8(��׼POCSAG:0x7CD215D8,����CC1101��֧��32λͬ����,��ֻȡ��16λ)+[POCSAG��Batch1,����16������,��64�ֽ�]
-ע����׼POCSAG��ʽΪ��576bitǰ����+32bitͬ����0x7CD215D8+64�ֽ�Batch1+32bitͬ����0x7CD215D8+64�ֽ�Batch2
-4.����POCSAG��ʽ������г��ӽ�Ԥ����Ϣ����: ���ձ�׼TB/T3504-2018���г��ӽ�Ԥ�������豸�������ճ���/�ٶ�/�������Ϣ���г�Ԥ����Ϣ����BCD�뷽ʽ���ͣ�
-  ��ʽͬ��׼POCSAG�����ִ��͸�ʽ�������ʽΪ��5λ���κ�+�ո�+3λ�ٶ�+�ո�+5λ��̱꣬����λ�����ڸ�λ��ո��롣
-5.����POCSAG��ַ�����еĹ����벻ͬ����������������Ϣ�����첻ͬ������
-6.����ʹ���жϷ�ʽ����CC1101���������н������ʱ���ж���Ӧ�����е��ûص���������֪ͨ�ϲ�������POCSAG���봦����
-7.���û��⵽CC1101��״ָ̬ʾ�ƿ�����˸��������ÿ��1.5�������Ρ�
-============================�޸���־============================
-2020-7-27 ��Ŀ����
-==============================V1.0ʹ��˵��=====================================
-ͨ�����ڵ���(115200,N,8,1)��������$��ͷ��������в����趨:
-$ (View this help tips again.)	����ʾ������Ϣ��
-$$ (List current settings)	���г���ǰ���á�
-$V (View version info)	����ʾ�汾�š�
-$F=xxx.xxxx (Setting frenquency to xxx.xxxx MHz)	������Ƶ��Ϊxxx.xxxxMhz��
-$INV=x (1 or 0,toggle invert receive.)	���л��Ƿ�����ա�
+﻿项目名称：CC1101_Rx_LBJ
+修订版本：V1.1
+创建日期：2020-7-27
+作者：谢英男 xieyingnan1994@163.com QQ:972982516
+描述：
+1.使用CC1101射频芯片在821.2375MHz接收和解码POCSAG传呼码编码的列车接近预警信息。CC1101驱动程序移植了原基于Arduino的RadioLib.
+  主控使用STM32F103RCT6，使用串口设置接收频率。
+2.CC1101发送的数据非标准POCSAG格式，CC1101的2FSK方式为F+f代表1，F-f代表0，
+  与标准的POCSAG要求恰好相反。因此为了兼容CC1101发出的数据和标准传呼台数据，将CC1101收到的原始数据反向后再接收处理。另外同步码也需要设置为反向才能识别同步码。
+3.CC1101使用定长度包模式，包长设置为16字节，为4个码字的长度，接收的数据结构为：
+  16字节前导码（交错的0101...）+2字节同步码0xEA27(标准POCSAG:0x7CD215D8,由于CC1101不支持32位同步码,故只取低16位,同时因为CC1101的FSK频偏方向和标准传呼台方向相反，取其反码作为同步码)+[POCSAG地址和消息码字，包含4个码字,共16字节]
+注：标准POCSAG格式为：576bit前导码+32bit同步码0x7CD215D8+64字节Batch1+32bit同步码0x7CD215D8+64字节Batch2
+4.接收POCSAG格式编码的列车接近预警消息内容: 按照标准TB/T3504-2018《列车接近预警地面设备》，接收车次/速度/公里标信息。列车预警信息采用BCD码方式传送，
+  格式同标准POCSAG纯数字传送格式。具体格式为：5位车次号+空格+3位速度+空格+5位里程标，不足位数的在高位填空格补齐。
+5.根据POCSAG地址码字中的功能码不同，蜂鸣器在收妥消息后鸣响不同次数。
+6.接收使用中断方式，即CC1101驱动程序中接收完成时在中断响应函数中调用回调函数，来通知上层程序进行POCSAG解码处理。
+7.如果没检测到CC1101则状态指示灯快速闪烁，蜂鸣器每隔1.5秒响两次。
+============================修改日志============================
+2020-7-27 项目创建
+2020-8-1  根据2020-7-31使用V1.0版本在老边道口的实际实验结果，对程序进行如下修正，
+          推出V1.1版本。
+          1.国铁LBJ在1234000和1234008地址实际传送1地址码字+6消息码字，一共7个码字共计28字节。
+          对于列车接近预警信息，地址码字和前三个消息码字有数据，剩下的三个码字为IDLE；对于时钟同步信息，地址码字和第一个消息码字有数据，剩下五个码字都是IDLE码字。
+          因此，在CC1101初始化中改动包长度为4个码字长度，共16字节，保持定长模式不变。
+          2.经过实际验证，CC1101的2FSK频偏方向（F+f代表1，F-f代表0）的确与国铁标准POCSAG频偏方向（F+f代表0，F-f代表1）相反，LBJ发出的0会被CC1101认为是1，反之亦然。
+          因此将“位反向”功能写死，并取消配置设置中位反向与否的选项；在CC1101初始化程序中将同步码写死为标准POCSAG同步码0x7CD215D8的低16位的反码0xEA27；POCSAG解析子程序的最后一个形参改为true,即：先将CC1101收到的原始数据按位反向后再进行解析。
+          3.收到的BCD码应当先颠倒位顺序。例如，收到的1101b应该先颠倒顺序为1011b后再处理。在POCSAG解析程序中增加颠倒位顺序的子程序。
+          4.增加1234008地址上时钟同步消息的提示。
+==============================V1.0使用说明=====================================
+通过串口调试(115200,N,8,1)输入以下$开头的命令进行参数设定:
+$ (View this help tips again.)	【显示帮助信息】
+$$ (List current settings)	【列出当前设置】
+$V (View version info)	【显示版本号】
+$F=xxx.xxxx (Setting frenquency to xxx.xxxx MHz)	【设置频率为xxx.xxxxMhz】
 
-��ע��CC1101_Setup()��CC1101Ӧ��������
-1.�ر�CRCУ�� 
-2.���ð�����ģʽ��������64�ֽڣ�Ϊ����FIFO��С��
-3.����ͬ����:0x15,0xD8;������ͬ����λ����;�����ز����
-4.ǰ���볤��:16�ֽ�(��CC1101_Setup����ڲ�������)
-5.Ƶƫ:4.5kHz(��CC1101_Setup����ڲ�������)
+备注1：CC1101_Setup()中CC1101应做的设置
+1.关闭CRC校验 
+2.设置包长度模式：定长，16字节（为4个码字的长度）
+3.设置同步字:0xEA,0x27;不允许同步字位错误;启用载波检测
+4.前导码长度:16字节(由CC1101_Setup的入口参数给定)
+5.频偏:4.5kHz(由CC1101_Setup的入口参数给定)
+备注2:2020年7月31日下午在老边道口实验的数据
+1.列车接近预警消息@1234000
+“Processing 16 received codewords...
+Found address codeword at batch[0]:Addr:1234000,Func:3.
+Found message codeword at batch[1]:Type:BCD,Data:16E22
+Found message codeword at batch[2]:Type:BCD,Data:33303
+Found message codeword at batch[3]:Type:BCD,Data:3388E
+Found IDLE codeword at batch[4].
+Found IDLE codeword at batch[5].
+Found IDLE codeword at batch[6].”
+2.时钟同步消息@1234008
+“Processing 16 received codewords...
+Found address codeword at batch[0]:Addr:1234008,Func:0.
+Found message codeword at batch[1]:
+Found IDLE codeword at batch[2].
+Found IDLE codeword at batch[3].
+Found IDLE codeword at batch[4].
+Found IDLE codeword at batch[5].
+Found IDLE codeword at batch[6].”
+

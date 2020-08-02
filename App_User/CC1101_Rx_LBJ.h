@@ -42,7 +42,7 @@
 #endif
 /* 定义版本号和构建信息字符串 */
 #define APP_NAME_STR "CC1101_Rx_LBJ"
-#define VERTION_STR "V1.0"
+#define VERTION_STR "V1.1"
 #define BUILD_DATE_STR __DATE__
 #define BUILD_TIME_STR __TIME__
 #endif

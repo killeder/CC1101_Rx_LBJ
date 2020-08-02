@@ -41,7 +41,31 @@
 *.su
 *.idb
 *.pdb
-
+#Keil MDK build outputs
+*.bak
+*.ddk
+*.edk
+*.lst
+*.lnp
+*.mpf
+*.mpj
+*.obj
+*.omf
+*.plg
+*.rpt
+*.tmp
+*.__i
+*.crf
+*.o
+*.d
+*.axf
+*.tra
+*.dep           
+JLinkLog.txt
+*.iex
+*.htm
+*.sct
+*.m*
 # Kernel Module Compile Results
 *.mod*
 *.cmd

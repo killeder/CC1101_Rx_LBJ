@@ -12,13 +12,29 @@
 #include <stdio.h>
 #include "POCSAG_ParseLBJ.h"
 /*-----------------------------------------------------------------------
+*@brief		翻转BCD位顺序
+*@param		bcd - 要转换的BCD码
+*@retval	转换结果
+-----------------------------------------------------------------------*/
+static uint8_t FlipBCDbitOrder(uint8_t bcd)
+{
+	uint8_t result = 0;
+
+	for(uint8_t i = 4;i > 0;i--)//i=4->1,因此i-1=3->0
+	{
+		if(bcd & (1<<(i-1)))	//bit3->bit0遍历
+			result |= 1<<(3-(i-1));//bit0-bit3判断是否写1
+	}
+	return result;
+}
+/*-----------------------------------------------------------------------
 *@brief		BCD转字符
 *@param		bcd - 要转换的BCD码
 *@retval	转换结果
 -----------------------------------------------------------------------*/
 static char BCD2Char(uint8_t bcd)
 {
-	char ch;
+	char ch = 0;
 	const char punc[6] = {'*','U','\x20','-','(',')'};//与0x0A-0x0F对应
 
 	if(bcd <= 9)
@@ -95,8 +111,8 @@ int8_t POCSAG_ParseCodeWordsLBJ(POCSAG_RESULT* Parse_Result, uint8_t* Batch_data
 								Bytecount_In/4);
 			continue;	//舍弃并合成下一个码字
 		}
-		if(!(CodeWord_Item & 0x80000000)) //如果如果第31位为0,是地址码字
-		{
+		if(!(CodeWord_Item&0x80000000))
+		{				//如果如果第31位为0,解析地址码字
 			AddrCode = CodeWord_Item >> 11;	//右移动11位，以去掉BCH和偶校验位
 			FuncCode = AddrCode & 0x3;	//AddrCode低2位代表功能码
 			AddrCode >>= 2;	//右移2位去掉功能码，保留高18位地址码
@@ -111,8 +127,7 @@ int8_t POCSAG_ParseCodeWordsLBJ(POCSAG_RESULT* Parse_Result, uint8_t* Batch_data
 		{
 			POCSAG_DEBUG_MSG("Found message codeword at batch[%u]:",Bytecount_In/4);
 			//列车接近预警在地址1234000发送,时间同步信息在地址1234008发送
-			//地址过滤，只保留列车接近预警信息
-			if(AddrCode == LBJ_MESSAGE_ADDR)
+			if((AddrCode == LBJ_MESSAGE_ADDR)||(AddrCode == LBJ_TIMESYNC_ADDR))
 			{
 				POCSAG_DEBUG_MSG("Type:BCD,Data:");
 				CodeWord_Item = (CodeWord_Item>>11)&0xFFFFF;
@@ -120,12 +135,19 @@ int8_t POCSAG_ParseCodeWordsLBJ(POCSAG_RESULT* Parse_Result, uint8_t* Batch_data
 				for(uint8_t i = 5; i > 0;i--)//i=5->1
 				{
 					uint32_t bcd_decode = CodeWord_Item & (0x0000F<<(i-1)*4);
+					uint8_t bcd_target;
+
 					bcd_decode >>= (i-1)*4;//i-1=4->0
+					//此时“bcd_decode”低4位的BCD码和我们想要的BCD码在位顺序上正好相反。
+					//因此调用"FlipBCDbitOrder()"解决此问题
+					bcd_target = FlipBCDbitOrder((uint8_t)bcd_decode);	//翻转位顺序
 					if(Decoded_len < 40)//防止下标越界，并给字符串末尾的\0留地方
-						DecodedText[Decoded_len++] = BCD2Char((uint8_t)bcd_decode);
-					POCSAG_DEBUG_MSG("%hhX",(uint8_t)bcd_decode);
+						DecodedText[Decoded_len++] = BCD2Char(bcd_target);
+					POCSAG_DEBUG_MSG("%hhX",bcd_target);
 				}	
 			}
+			else
+				POCSAG_DEBUG_MSG("Addr code mismatch!");
 			POCSAG_DEBUG_MSG("\r\n");
 		}
 	}
