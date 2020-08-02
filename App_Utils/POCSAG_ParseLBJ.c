@@ -20,15 +20,11 @@ static uint8_t FlipBCDbitOrder(uint8_t bcd)
 {
 	uint8_t result = 0;
 
-	for(uint8_t i = 4;i >0;i--)//i=4->1
+	for(uint8_t i = 4;i > 0;i--)//i=4->1,因此i-1=3->0
 	{
-		uint8_t mask = 0x01<<(i-1);	//i-1=3->0
-		if(bcd&mask != 0)
-		{
-			result |= 0x01<<(3-(i-1));
-		}
+		if(bcd & (1<<(i-1)))	//bit3->bit0遍历
+			result |= 1<<(3-(i-1));//bit0-bit3判断是否写1
 	}
-	result &= 0x0F;
 	return result;
 }
 /*-----------------------------------------------------------------------
@@ -115,8 +111,8 @@ int8_t POCSAG_ParseCodeWordsLBJ(POCSAG_RESULT* Parse_Result, uint8_t* Batch_data
 								Bytecount_In/4);
 			continue;	//舍弃并合成下一个码字
 		}
-		if((CodeWord_Item&0x80000000 == 0) && (AddrCode == 0))
-		{				//如果如果第31位为0,且没发现过地址码字，则解析地址码字
+		if(!(CodeWord_Item&0x80000000))
+		{				//如果如果第31位为0,解析地址码字
 			AddrCode = CodeWord_Item >> 11;	//右移动11位，以去掉BCH和偶校验位
 			FuncCode = AddrCode & 0x3;	//AddrCode低2位代表功能码
 			AddrCode >>= 2;	//右移2位去掉功能码，保留高18位地址码
@@ -143,9 +139,8 @@ int8_t POCSAG_ParseCodeWordsLBJ(POCSAG_RESULT* Parse_Result, uint8_t* Batch_data
 
 					bcd_decode >>= (i-1)*4;//i-1=4->0
 					//此时“bcd_decode”低4位的BCD码和我们想要的BCD码在位顺序上正好相反。
-					//因此调用"FlipBCDbitOrder()"节距解决此问题
-					bcd_target = bcd_decode & 0xFF;	//只保留低8位
-					bcd_target = FlipBCDbitOrder(bcd_target);	//翻转位顺序
+					//因此调用"FlipBCDbitOrder()"解决此问题
+					bcd_target = FlipBCDbitOrder((uint8_t)bcd_decode);	//翻转位顺序
 					if(Decoded_len < 40)//防止下标越界，并给字符串末尾的\0留地方
 						DecodedText[Decoded_len++] = BCD2Char(bcd_target);
 					POCSAG_DEBUG_MSG("%hhX",bcd_target);
