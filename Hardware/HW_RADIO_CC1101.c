@@ -602,7 +602,7 @@ uint32_t CC1101_GetPacketLength(bool update)
 -----------------------------------------------------------------------*/
 uint8_t CC1101_GetLQI(void)
 {
-	uint8_t LQI = SPIgetMaskedRegValue(CC1101_REG_LQI,6,0);
+	uint8_t LQI = SPIgetMaskedRegValue(CC1101_REG_LQI,5,0);
 					//寄存器内原始数据最高位为CRC_OK标志，将其去掉取得低6位作为LQI
 	return(LQI);	//返回LQI，范围0-64，数值越大表示解码越容易
 }
