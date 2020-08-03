@@ -285,7 +285,7 @@
       <Focus>0</Focus>
       <ColumnNumber>3</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>19</TopLine>
+      <TopLine>21</TopLine>
       <CurrentLine>27</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>..\App_Utils\POCSAG_ParseLBJ.c</PathWithFileName>
@@ -339,10 +339,10 @@
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>24</ColumnNumber>
+      <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>409</TopLine>
-      <CurrentLine>410</CurrentLine>
+      <TopLine>70</TopLine>
+      <CurrentLine>1</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>..\Hardware\HW_RADIO_CC1101.c</PathWithFileName>
       <FilenameWithoutPath>HW_RADIO_CC1101.c</FilenameWithoutPath>
